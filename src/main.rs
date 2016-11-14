@@ -37,7 +37,7 @@ fn main() {
         }
 
         for address in servers.into_iter() {
-            handles.push(spawn(move || listen(address) ));
+            handles.push(spawn(move || listen(address)));
         }
     }
 
@@ -72,10 +72,12 @@ fn ping(server: SocketAddrV4) {
     loop {
         match TcpStream::connect(server) {
             Err(e) => {
-                println!("Connection to {} failed: {}", server, get_client_error_string(e));
+                println!("Connection to {} failed: {}",
+                         server,
+                         get_client_error_string(e));
                 i += 1;
                 sleep(Duration::from_secs(1));
-            },
+            }
             Ok(mut stream) => {
                 let client = stream.local_addr().unwrap();
                 stream.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
@@ -88,31 +90,42 @@ fn ping(server: SocketAddrV4) {
                     i += 1;
                     match stream.write(msg.as_bytes()) {
                         Err(e) => {
-                            println!("{}: failed to write ping message for {} ({})", client, server, get_client_error_string(e));
+                            println!("{}: failed to write ping message for {} ({})",
+                                     client,
+                                     server,
+                                     get_client_error_string(e));
                             sleep(Duration::from_secs(1));
                             break;
-                        },
+                        }
                         Ok(_) => {
                             println!("{} >>> {}: {}", client, server, msg);
                             match stream.read(&mut read_buf) {
                                 Ok(n) => {
                                     if n > 0 {
-                                        println!("{} <<< {}: {}", client, server, str::from_utf8(&read_buf[0..n]).unwrap());
+                                        println!("{} <<< {}: {}",
+                                                 client,
+                                                 server,
+                                                 str::from_utf8(&read_buf[0..n]).unwrap());
                                     } else {
-                                        println!("{}: connection with {} closed (received EOF)", client, server);
+                                        println!("{}: connection with {} closed (received EOF)",
+                                                 client,
+                                                 server);
                                         sleep(Duration::from_secs(1));
                                         break;
                                     }
                                     sleep(Duration::from_secs(1));
                                 }
                                 Err(e) => {
-                                    println!("{}: failed to read ping response from {} ({})", client, server, get_client_error_string(e));
+                                    println!("{}: failed to read ping response from {} ({})",
+                                             client,
+                                             server,
+                                             get_client_error_string(e));
                                 }
                             }
-                        },
+                        }
                     }
                 }
-            },
+            }
         }
     }
 }
@@ -158,7 +171,9 @@ fn handle_connection(mut stream: TcpStream) {
                     //
                     // We assume the first scenario since we know our buffer length in not 0.
                     // This means the connection is closed and we can exit.
-                    println!("{}: connection with {} is closed (received EOF).", server, peer);
+                    println!("{}: connection with {} is closed (received EOF).",
+                             server,
+                             peer);
                     return;
                 }
             }
@@ -167,7 +182,12 @@ fn handle_connection(mut stream: TcpStream) {
                     // We are using a non-blocking socket and there was nothing to read, so Linux
                     // return an EAGAIN error which translates in rust into a "WouldBlock" error.
                     ErrorKind::WouldBlock => continue,
-                    _ => panic!("{}: An unknown error occured while reading the socket for {}: {}", server, peer, e),
+                    _ => {
+                        panic!("{}: An unknown error occured while reading the socket for {}: {}",
+                               server,
+                               peer,
+                               e)
+                    }
                 }
             }
         }
