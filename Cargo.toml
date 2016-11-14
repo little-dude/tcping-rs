@@ -5,3 +5,4 @@ authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 
 [dependencies]
 clap = "*"
+clippy = "*"

@@ -1,3 +1,5 @@
+#![feature(plugin)]
+#![plugin(clippy)]
 extern crate clap;
 
 use std::io::{Write, Read, ErrorKind, Error};
@@ -36,7 +38,7 @@ fn main() {
             servers.push(addr.trim().parse().expect("not a value port number"));
         }
 
-        for address in servers.into_iter() {
+        for address in servers {
             handles.push(spawn(move || listen(address)));
         }
     }
@@ -47,7 +49,7 @@ fn main() {
             clients.push(addr.trim().parse().expect("not a value port number"));
         }
 
-        for address in clients.into_iter() {
+        for address in clients {
             handles.push(spawn(move || ping(address)));
         }
     }
