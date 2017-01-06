@@ -25,25 +25,32 @@ impl Server {
     }
 
     pub fn listen(&self) {
-        let listener = TcpListener::bind(&self.address).unwrap();
-        println!("listening started on {}, ready to accept", self.address);
-        let replies_count = Arc::new(Mutex::new(0));
-        let mut handles = Vec::<JoinHandle<()>>::new();
-        for (connection_count, stream) in listener.incoming().enumerate() {
-            let expected_echo_replies = self.expected_echo_replies;
-            let count = replies_count.clone();
-            handles.push(spawn(move || {
-                handle_connection(stream.unwrap(), count, expected_echo_replies);
-            }));
-            if let Some(expected_connections) = self.expected_connections {
-                if connection_count as u32 == expected_connections {
-                    // we should probably kill the active threads first
-                    break;
+        match TcpListener::bind(&self.address) {
+            Ok(listener) => {
+                println!("listening started on {}, ready to accept", self.address);
+                let replies_count = Arc::new(Mutex::new(0));
+                let mut handles = Vec::<JoinHandle<()>>::new();
+                for (connection_count, stream) in listener.incoming().enumerate() {
+                    let expected_echo_replies = self.expected_echo_replies;
+                    let count = replies_count.clone();
+                    handles.push(spawn(move || {
+                        handle_connection(stream.unwrap(), count, expected_echo_replies);
+                    }));
+                    if let Some(expected_connections) = self.expected_connections {
+                        if connection_count as u32 == expected_connections {
+                            // we should probably kill the active threads first
+                            break;
+                        }
+                    }
+                }
+                for handle in handles {
+                    handle.join().unwrap();
                 }
             }
-        }
-        for handle in handles {
-            handle.join().unwrap();
+            Err(e) => {
+                println!("Cannot listen on {}", self.address);
+                println!("    caused by: {}", e);
+            }
         }
     }
 }
