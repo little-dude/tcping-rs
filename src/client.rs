@@ -5,6 +5,9 @@ use std::time::Duration;
 use std::str;
 use std::fmt;
 use std::cell::RefCell;
+use chan_signal;
+use chan_signal::Signal;
+
 
 use errors::*;
 
@@ -84,17 +87,26 @@ impl Client {
 
     pub fn run(&mut self) {
         match self.mode {
-            Mode::Reconnect => {
-                let mut failed = 0;
-                let mut success = 0;
-                loop {
+            Mode::Reconnect => self.run_reconnect(),
+            Mode::KeepAlive => unimplemented!(),
+        }
+    }
+
+    pub fn run_reconnect(&mut self) {
+        let signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
+
+        let mut failed = 0;
+        let mut success = 0;
+        loop {
+            chan_select! {
+                default => {
                     match self.connect() {
                         Ok(_) => {
                             success += 1;
                             println!("{} >>> {} connection successful ({})",
-                                     self,
-                                     self.server,
-                                     self.connection_id);
+                            self,
+                            self.server,
+                            self.connection_id);
                         }
                         Err(e) => {
                             failed += 1;
@@ -110,11 +122,15 @@ impl Client {
                             break;
                         }
                     }
-                }
-                println!("success: {}, failed {}", success, failed);
+                },
+                signal.recv() => {
+                    break;
+                },
             }
-            Mode::KeepAlive => unimplemented!(),
         }
+        println!("===============================");
+        println!("success: {}, failed {}", success, failed);
+        println!("===============================");
     }
 
     // fn get_echo_response(&mut self) -> Result<()> {

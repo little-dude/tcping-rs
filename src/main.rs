@@ -5,6 +5,11 @@
 #[macro_use]
 extern crate error_chain;
 extern crate clap;
+
+#[macro_use]
+extern crate chan;
+extern crate chan_signal;
+
 use clap::ArgMatches;
 use std::thread::{spawn, JoinHandle};
 use std::str;

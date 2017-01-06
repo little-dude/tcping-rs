@@ -7,3 +7,5 @@ authors = ["Corentin Henry <corentinhenry@gmail.com>"]
 clap = "*"
 clippy = "*"
 error-chain = "*"
+chan-signal = "*"
+chan = "*"
