@@ -13,7 +13,10 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(address: SocketAddrV4, expected_connections: Option<u32>, expected_replies: Option<u32>) -> Self {
+    pub fn new(address: SocketAddrV4,
+               expected_connections: Option<u32>,
+               expected_replies: Option<u32>)
+               -> Self {
         Server {
             address: address,
             expected_connections: expected_connections,
@@ -24,15 +27,14 @@ impl Server {
     pub fn listen(&self) {
         let listener = TcpListener::bind(&self.address).unwrap();
         println!("listening started on {}, ready to accept", self.address);
-        let replies_count =  Arc::new(Mutex::new(0));
+        let replies_count = Arc::new(Mutex::new(0));
         let mut handles = Vec::<JoinHandle<()>>::new();
-        for (connection_count, stream) in listener.incoming().enumerate() { 
+        for (connection_count, stream) in listener.incoming().enumerate() {
             let expected_echo_replies = self.expected_echo_replies;
             let count = replies_count.clone();
-            handles.push(
-                spawn(move || {
-                    handle_connection(stream.unwrap(), count, expected_echo_replies);
-                }));
+            handles.push(spawn(move || {
+                handle_connection(stream.unwrap(), count, expected_echo_replies);
+            }));
             if let Some(expected_connections) = self.expected_connections {
                 if connection_count as u32 == expected_connections {
                     // we should probably kill the active threads first
@@ -46,7 +48,9 @@ impl Server {
     }
 }
 
-fn handle_connection(mut stream: TcpStream, replies_count: Arc<Mutex<u32>>, expected_replies: Option<u32>) {
+fn handle_connection(mut stream: TcpStream,
+                     replies_count: Arc<Mutex<u32>>,
+                     expected_replies: Option<u32>) {
     let server = stream.local_addr().unwrap();
     let peer = stream.peer_addr().unwrap();
     println!("{}: connection established from {}", server, peer);
@@ -82,8 +86,8 @@ fn handle_connection(mut stream: TcpStream, replies_count: Arc<Mutex<u32>>, expe
                     // We assume the first scenario since we know our buffer length in not 0.
                     // This means the connection is closed and we can exit.
                     println!("{}: connection with {} is closed (received EOF).",
-                    server,
-                    peer);
+                             server,
+                             peer);
                     return;
                 }
             }
@@ -102,29 +106,32 @@ fn handle_connection(mut stream: TcpStream, replies_count: Arc<Mutex<u32>>, expe
     }
 }
 
-    pub fn handle_message(buffer: &[u8], length: usize, stream: &mut TcpStream, replies_count: &Arc<Mutex<u32>>) {
-        let server = stream.local_addr().unwrap();
-        let peer = stream.peer_addr().unwrap();
-        if let Ok(msg) = str::from_utf8(&buffer[0..length]) {
-            println!("{} <<< {} {}", server, peer, msg);
-            match stream.write(&buffer[0..length]) {
-                Ok(n) => {
-                    if length < n {
-                        panic!("*** {}: Incomplete answer: {} bytes answered instead of {}",
-                               peer,
-                               n,
-                               length);
-                    } else {
-                        println!("{} >>> {} {}", server, peer, msg);
-                        *replies_count.lock().unwrap() += 1;
-                    }
-                },
-                Err(e) => {
-                    panic!("*** {}: {:?}", peer, e);
+pub fn handle_message(buffer: &[u8],
+                      length: usize,
+                      stream: &mut TcpStream,
+                      replies_count: &Arc<Mutex<u32>>) {
+    let server = stream.local_addr().unwrap();
+    let peer = stream.peer_addr().unwrap();
+    if let Ok(msg) = str::from_utf8(&buffer[0..length]) {
+        println!("{} <<< {} {}", server, peer, msg);
+        match stream.write(&buffer[0..length]) {
+            Ok(n) => {
+                if length < n {
+                    panic!("*** {}: Incomplete answer: {} bytes answered instead of {}",
+                           peer,
+                           n,
+                           length);
+                } else {
+                    println!("{} >>> {} {}", server, peer, msg);
+                    *replies_count.lock().unwrap() += 1;
                 }
             }
-        } else {
-            println!("<<< {} {:?}", peer, buffer);
-            println!("Received message is not a valid UTF-8 sequence. Ignoring");
+            Err(e) => {
+                panic!("*** {}: {:?}", peer, e);
+            }
         }
+    } else {
+        println!("<<< {} {:?}", peer, buffer);
+        println!("Received message is not a valid UTF-8 sequence. Ignoring");
     }
+}

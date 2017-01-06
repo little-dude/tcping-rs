@@ -1,6 +1,6 @@
 // use std::io::{Write, Read};
 use std::net::{TcpStream, SocketAddrV4};
-use std::thread::{sleep};
+use std::thread::sleep;
 use std::time::Duration;
 use std::str;
 use std::fmt;
@@ -28,23 +28,22 @@ impl fmt::Display for Client {
         match self.stream {
             Some(ref stream) => {
                 match stream.borrow().local_addr() {
-                    Ok(addr) => {
-                        write!(f, "{}", addr)
-                    }
-                    Err(_) => {
-                        write!(f, "client (not connected)")
-                    }
+                    Ok(addr) => write!(f, "{}", addr),
+                    Err(_) => write!(f, "client (not connected)"),
                 }
-            },
-            None => {
-                write!(f, "client (not connected)")
-            },
+            }
+            None => write!(f, "client (not connected)"),
         }
     }
 }
 
 impl Client {
-    pub fn new(server: SocketAddrV4, interval: f32, count: Option<u32>, timeout: Option<u32>, reconnect: bool) -> Self {
+    pub fn new(server: SocketAddrV4,
+               interval: f32,
+               count: Option<u32>,
+               timeout: Option<u32>,
+               reconnect: bool)
+               -> Self {
         let mut interval = interval;
         if interval < 0.0001 {
             interval = 0.0001;
@@ -72,13 +71,15 @@ impl Client {
         // self.interval quite meaningless. Maybe see if we can work something out with
         // TcpStream.set_nonblocking
         // (https://doc.rust-lang.org/std/net/struct.TcpStream.html#method.set_nonblocking)
-            let stream = TcpStream::connect(self.server).chain_err(|| ErrorKind::ConnectionFailed)?;
-            if let Mode::KeepAlive = self.mode {
-                stream.set_read_timeout(Some(Duration::from_millis(100))).chain_err(|| ErrorKind::ConnectionFailed)?;
-                stream.set_write_timeout(Some(Duration::from_millis(100))).chain_err(|| ErrorKind::ConnectionFailed)?;
-            }
-            self.stream = Some(RefCell::new(stream));
-            Ok(())
+        let stream = TcpStream::connect(self.server).chain_err(|| ErrorKind::ConnectionFailed)?;
+        if let Mode::KeepAlive = self.mode {
+            stream.set_read_timeout(Some(Duration::from_millis(100)))
+                .chain_err(|| ErrorKind::ConnectionFailed)?;
+            stream.set_write_timeout(Some(Duration::from_millis(100)))
+                .chain_err(|| ErrorKind::ConnectionFailed)?;
+        }
+        self.stream = Some(RefCell::new(stream));
+        Ok(())
     }
 
     pub fn run(&mut self) {
@@ -90,15 +91,18 @@ impl Client {
                     match self.connect() {
                         Ok(_) => {
                             success += 1;
-                            println!("{} >>> {} connection successful ({})", self, self.server, self.connection_id);
-                        },
+                            println!("{} >>> {} connection successful ({})",
+                                     self,
+                                     self.server,
+                                     self.connection_id);
+                        }
                         Err(e) => {
                             failed += 1;
                             println!("connection to {} failed: {}", self.server, e);
                             for e in e.iter().skip(1) {
                                 println!("    caused by: {}", e);
                             }
-                        },
+                        }
                     }
                     sleep(Duration::from_millis(self.interval));
                     if let Some(count) = self.count {
@@ -108,10 +112,8 @@ impl Client {
                     }
                 }
                 println!("success: {}, failed {}", success, failed);
-            },
-            Mode::KeepAlive => {
-                unimplemented!()
-            },
+            }
+            Mode::KeepAlive => unimplemented!(),
         }
     }
 
