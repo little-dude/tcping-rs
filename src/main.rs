@@ -39,10 +39,15 @@ fn run_server(server_args: &ArgMatches) -> Result<()> {
     let mut handles = Vec::<JoinHandle<()>>::new();
     // unwrap safely since we marked this option as required
     let addresses = server_args.values_of("address").unwrap();
+    let connection_count = match server_args.value_of("connection_count") {
+        Some(count) => Some(count.parse::<u32>().chain_err(|| "Invalid count")?),
+        None => None,
+    };
+
     let mut servers: Vec<server::Server> = vec![];
     for addr in addresses {
         servers.push(server::Server::new(addr.trim().parse().chain_err(|| "Invalid port number")?,
-                                         None,
+                                         connection_count,
                                          None));
     }
     for server in servers {

@@ -38,7 +38,10 @@ impl Server {
                     }));
                     if let Some(expected_connections) = self.expected_connections {
                         if connection_count as u32 == expected_connections {
-                            // we should probably kill the active threads first
+                            println!("Got {} connections. Exiting", connection_count as u32);
+                            // should we kill the active threads first?
+                            // I think that's taken care of when the process exits but maybe it's
+                            // cleaner?
                             break;
                         }
                     }
